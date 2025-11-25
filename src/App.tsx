@@ -3,7 +3,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { AppLayout } from "./components/layout/AppLayout";
+import Dashboard from "./pages/Dashboard";
+import Items from "./pages/Items";
+import StockReceiving from "./pages/StockReceiving";
+import StockIssuance from "./pages/StockIssuance";
+import Custodians from "./pages/Custodians";
+import StockCard from "./pages/StockCard";
+import PhysicalCount from "./pages/PhysicalCount";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,7 +23,16 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/items" element={<Items />} />
+            <Route path="/receiving" element={<StockReceiving />} />
+            <Route path="/issuance" element={<StockIssuance />} />
+            <Route path="/custodians" element={<Custodians />} />
+            <Route path="/stock-card" element={<StockCard />} />
+            <Route path="/physical-count" element={<PhysicalCount />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
