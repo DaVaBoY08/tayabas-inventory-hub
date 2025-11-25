@@ -1,16 +1,18 @@
-import { useState } from "react";
-import { FileText, Search, Download } from "lucide-react";
+import { useState, useMemo } from "react";
+import { FileText, Search, Download, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockItems } from "@/lib/mockData";
+import { useDirectusItems } from "@/hooks/useDirectusItems";
+import { useDirectusMovements } from "@/hooks/useDirectusMovements";
+import { format } from "date-fns";
 
 interface StockCardEntry {
   id: string;
   date: string;
   reference: string;
-  type: "Received" | "Issued";
+  type: "received" | "issued";
   quantity: number;
   balance: number;
   unitCost: number;
@@ -22,65 +24,67 @@ export default function StockCardNew() {
   const [selectedItem, setSelectedItem] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Mock stock card entries
-  const stockCardEntries: StockCardEntry[] = [
-    {
-      id: "1",
-      date: "2024-01-01",
-      reference: "Beginning Balance",
-      type: "Received",
-      quantity: 100,
-      balance: 100,
-      unitCost: 220,
-      totalValue: 22000,
-      remarks: "Opening stock",
-    },
-    {
-      id: "2",
-      date: "2024-01-10",
-      reference: "PO-2024-001",
-      type: "Received",
-      quantity: 50,
-      balance: 150,
-      unitCost: 220,
-      totalValue: 33000,
-      remarks: "Regular procurement",
-    },
-    {
-      id: "3",
-      date: "2024-01-12",
-      reference: "RIS-2024-003",
-      type: "Issued",
-      quantity: 10,
-      balance: 140,
-      unitCost: 220,
-      totalValue: 30800,
-      remarks: "To HR Department",
-    },
-    {
-      id: "4",
-      date: "2024-01-15",
-      reference: "RIS-2024-005",
-      type: "Issued",
-      quantity: 15,
-      balance: 125,
-      unitCost: 220,
-      totalValue: 27500,
-      remarks: "To Finance Department",
-    },
-  ];
+  const { items, isLoading: itemsLoading } = useDirectusItems();
+  const { movements, isLoading: movementsLoading } = useDirectusMovements();
 
-  const filteredItems = mockItems.filter(item =>
-    item.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.itemCode.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter items based on search
+  const filteredItems = useMemo(() => {
+    return items.filter(item =>
+      item.itemName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.itemCode?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [items, searchQuery]);
 
-  const selectedItemData = mockItems.find(item => item.id === selectedItem);
+  const selectedItemData = useMemo(() => {
+    return items.find(item => item.id === selectedItem);
+  }, [items, selectedItem]);
+
+  // Calculate stock card entries with running balance
+  const stockCardEntries = useMemo(() => {
+    if (!selectedItem || !selectedItemData) return [];
+
+    const itemMovements = movements
+      .filter(m => m.itemId === selectedItem)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let runningBalance = 0;
+    const entries: StockCardEntry[] = [];
+
+    itemMovements.forEach(movement => {
+      if (movement.type === 'received') {
+        runningBalance += movement.quantity;
+      } else {
+        runningBalance -= movement.quantity;
+      }
+
+      entries.push({
+        id: movement.id,
+        date: format(new Date(movement.date), 'yyyy-MM-dd'),
+        reference: movement.reference,
+        type: movement.type,
+        quantity: movement.quantity,
+        balance: runningBalance,
+        unitCost: selectedItemData.unitCost,
+        totalValue: runningBalance * selectedItemData.unitCost,
+        remarks: movement.custodian ? `Custodian: ${movement.custodian}` : '',
+      });
+    });
+
+    return entries;
+  }, [movements, selectedItem, selectedItemData]);
 
   const handleExport = () => {
     // Export functionality would be implemented here
     alert("Stock card export feature - connect to your export service");
   };
+
+  if (itemsLoading || movementsLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -112,11 +116,12 @@ export default function StockCardNew() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
+                  disabled={itemsLoading}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Select value={selectedItem} onValueChange={setSelectedItem}>
+              <Select value={selectedItem} onValueChange={setSelectedItem} disabled={itemsLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select an item" />
                 </SelectTrigger>
@@ -186,17 +191,17 @@ export default function StockCardNew() {
                       <td className="py-3 px-4 text-sm font-medium">{entry.reference}</td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          entry.type === "Received" 
+                          entry.type === "received" 
                             ? "bg-success/10 text-success" 
                             : "bg-primary/10 text-primary"
                         }`}>
-                          {entry.type}
+                          {entry.type === "received" ? "Received" : "Issued"}
                         </span>
                       </td>
                       <td className={`py-3 px-4 text-sm text-right font-semibold ${
-                        entry.type === "Received" ? "text-success" : "text-primary"
+                        entry.type === "received" ? "text-success" : "text-primary"
                       }`}>
-                        {entry.type === "Received" ? "+" : "-"}{entry.quantity}
+                        {entry.type === "received" ? "+" : "-"}{entry.quantity}
                       </td>
                       <td className="py-3 px-4 text-sm text-right font-bold">{entry.balance}</td>
                       <td className="py-3 px-4 text-sm text-right">₱{entry.unitCost.toLocaleString()}</td>
