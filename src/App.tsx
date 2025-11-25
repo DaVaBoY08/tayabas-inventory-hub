@@ -9,8 +9,10 @@ import Items from "./pages/Items";
 import StockReceiving from "./pages/StockReceiving";
 import StockIssuance from "./pages/StockIssuance";
 import Custodians from "./pages/Custodians";
-import StockCard from "./pages/StockCard";
-import PhysicalCount from "./pages/PhysicalCount";
+import StockCardNew from "./pages/StockCardNew";
+import PhysicalCountNew from "./pages/PhysicalCountNew";
+import DepartmentRequests from "./pages/DepartmentRequests";
+import UserRoles from "./pages/UserRoles";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -29,8 +31,10 @@ const App = () => (
             <Route path="/receiving" element={<StockReceiving />} />
             <Route path="/issuance" element={<StockIssuance />} />
             <Route path="/custodians" element={<Custodians />} />
-            <Route path="/stock-card" element={<StockCard />} />
-            <Route path="/physical-count" element={<PhysicalCount />} />
+            <Route path="/stock-card" element={<StockCardNew />} />
+            <Route path="/physical-count" element={<PhysicalCountNew />} />
+            <Route path="/requests" element={<DepartmentRequests />} />
+            <Route path="/users" element={<UserRoles />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

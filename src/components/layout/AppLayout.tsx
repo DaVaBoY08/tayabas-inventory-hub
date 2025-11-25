@@ -23,6 +23,8 @@ const navigation = [
   { name: "Custodians", href: "/custodians", icon: Users },
   { name: "Stock Card", href: "/stock-card", icon: FileText },
   { name: "Physical Count", href: "/physical-count", icon: ClipboardCheck },
+  { name: "Department Requests", href: "/requests", icon: FileText },
+  { name: "User Roles", href: "/users", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
