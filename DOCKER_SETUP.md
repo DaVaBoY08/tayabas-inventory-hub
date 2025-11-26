@@ -152,6 +152,46 @@ For production:
 2. Or deploy to platforms like Vercel, Netlify, or AWS
 3. Use managed Directus Cloud or self-host with proper security
 
+## Database Management
+
+### Backup Database
+
+Create a backup of your PostgreSQL database:
+
+```bash
+# Make script executable (first time only)
+chmod +x scripts/backup.sh
+
+# Create backup
+./scripts/backup.sh
+```
+
+Backups are saved to `./backups/` directory with timestamps.
+
+### Restore Database
+
+Restore from a previous backup:
+
+```bash
+# Make script executable (first time only)
+chmod +x scripts/restore.sh
+
+# Restore (interactive)
+./scripts/restore.sh
+```
+
+⚠️ **Warning**: This will overwrite all current data!
+
+### Seed Sample Data
+
+Populate database with sample data for testing:
+
+```bash
+docker exec -i gso-postgres psql -U directus -d directus < scripts/seed.sql
+```
+
+See `scripts/README.md` for detailed documentation.
+
 ## Environment Variables
 
 The `.env` file contains:
