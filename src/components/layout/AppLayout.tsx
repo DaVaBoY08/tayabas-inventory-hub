@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
+import { canAccessRoute } from "@/config/rolePermissions";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -34,6 +37,11 @@ const navigation = [
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { role } = useUserRole();
+
+  const visibleNavigation = navigation.filter((item) => 
+    canAccessRoute(item.href, role)
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,7 +82,7 @@ export function AppLayout() {
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-            {navigation.map((item) => (
+            {visibleNavigation.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}
@@ -97,9 +105,16 @@ export function AppLayout() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {user?.user_metadata?.full_name || "User"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {user?.user_metadata?.full_name || "User"}
+                  </p>
+                  {role && (
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {role}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
                   {user?.email}
                 </p>

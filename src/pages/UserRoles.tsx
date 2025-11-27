@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Users, Shield, UserCog, Plus, Edit } from "lucide-react";
+import { Users, Shield, UserCog, Plus, Edit, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useUserManagement } from "@/hooks/useUserManagement";
 
 export default function UserRoles() {
@@ -105,6 +106,20 @@ export default function UserRoles() {
             <Users className="w-5 h-5" />
             System Users
           </CardTitle>
+          <CardDescription>
+            <div className="flex items-start gap-2 mt-2 text-xs">
+              <ShieldAlert className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-medium">Role Permissions:</p>
+                <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                  <li><Badge variant="outline" className="text-xs">Admin</Badge> - Full system access including user management</li>
+                  <li><Badge variant="outline" className="text-xs">Manager</Badge> - Can approve requests and access most features</li>
+                  <li><Badge variant="outline" className="text-xs">Staff</Badge> - Basic operations, inventory management</li>
+                  <li><Badge variant="outline" className="text-xs">Viewer</Badge> - Read-only access to reports and data</li>
+                </ul>
+              </div>
+            </div>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

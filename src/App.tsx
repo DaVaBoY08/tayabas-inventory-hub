@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { RoleGuard } from "./components/RoleGuard";
 import Dashboard from "./pages/Dashboard";
 import Items from "./pages/Items";
 import StockReceiving from "./pages/StockReceiving";
@@ -30,14 +31,14 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/items" element={<Items />} />
-            <Route path="/receiving" element={<StockReceiving />} />
-            <Route path="/issuance" element={<StockIssuance />} />
+            <Route path="/items" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><Items /></RoleGuard>} />
+            <Route path="/receiving" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><StockReceiving /></RoleGuard>} />
+            <Route path="/issuance" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><StockIssuance /></RoleGuard>} />
             <Route path="/custodians" element={<Custodians />} />
             <Route path="/stock-card" element={<StockCardNew />} />
-            <Route path="/physical-count" element={<PhysicalCountNew />} />
-            <Route path="/requests" element={<DepartmentRequests />} />
-            <Route path="/users" element={<UserRoles />} />
+            <Route path="/physical-count" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><PhysicalCountNew /></RoleGuard>} />
+            <Route path="/requests" element={<RoleGuard allowedRoles={["admin", "manager"]}><DepartmentRequests /></RoleGuard>} />
+            <Route path="/users" element={<RoleGuard allowedRoles={["admin"]}><UserRoles /></RoleGuard>} />
             <Route path="/settings" element={<Settings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
