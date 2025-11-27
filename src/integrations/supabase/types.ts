@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      custodians: {
+        Row: {
+          created_at: string
+          department: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          position: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          position?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          position?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      items: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          item_code: string
+          item_name: string
+          location: string | null
+          quantity: number
+          reorder_level: number | null
+          unit: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_code: string
+          item_name: string
+          location?: string | null
+          quantity?: number
+          reorder_level?: number | null
+          unit: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_code?: string
+          item_name?: string
+          location?: string | null
+          quantity?: number
+          reorder_level?: number | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -40,6 +121,56 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          custodian: string | null
+          department: string | null
+          id: string
+          item_id: string
+          movement_date: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          purpose: string | null
+          quantity: number
+          reference: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          custodian?: string | null
+          department?: string | null
+          id?: string
+          item_id: string
+          movement_date?: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          purpose?: string | null
+          quantity: number
+          reference: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          custodian?: string | null
+          department?: string | null
+          id?: string
+          item_id?: string
+          movement_date?: string
+          movement_type?: Database["public"]["Enums"]["movement_type"]
+          purpose?: string | null
+          quantity?: number
+          reference?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -75,6 +206,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "staff" | "viewer"
+      movement_type: "received" | "issued"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -203,6 +335,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "staff", "viewer"],
+      movement_type: ["received", "issued"],
     },
   },
 } as const
