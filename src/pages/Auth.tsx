@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useDirectusAuth } from "@/hooks/useDirectusAuth";
 import { Package, Loader2 } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { user, signIn, signUp } = useDirectusAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -19,39 +20,24 @@ export default function Auth() {
   const [signupFullName, setSignupFullName] = useState("");
 
   useEffect(() => {
-    // Check if already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/");
-      }
-    };
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Redirect if already logged in
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
+      const { error } = await signIn(loginEmail, loginPassword);
 
       if (error) {
         toast.error(error.message);
       } else {
         toast.success("Logged in successfully");
+        navigate("/");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -65,21 +51,13 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: signupFullName,
-          },
-        },
-      });
+      const { error } = await signUp(signupEmail, signupPassword, signupFullName);
 
       if (error) {
         toast.error(error.message);
       } else {
         toast.success("Account created! You can now log in.");
+        navigate("/");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
