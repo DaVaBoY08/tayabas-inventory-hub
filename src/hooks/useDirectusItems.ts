@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { directus } from "@/lib/directus";
 import { toast } from "sonner";
-import { InventoryItem } from "@/lib/mockData";
+import { InventoryItem } from "@/types";
 
 export function useDirectusItems() {
   const queryClient = useQueryClient();

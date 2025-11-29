@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { directus } from "@/lib/directus";
 import { toast } from "sonner";
-import { StockMovement } from "@/lib/mockData";
+import { StockMovement } from "@/types";
 
 export function useDirectusMovements(type?: 'received' | 'issued') {
   const queryClient = useQueryClient();

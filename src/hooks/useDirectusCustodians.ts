@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { directus } from "@/lib/directus";
 import { toast } from "sonner";
-import { Custodian } from "@/lib/mockData";
+import { Custodian } from "@/types";
 
 export function useDirectusCustodians() {
   const queryClient = useQueryClient();

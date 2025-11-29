@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { mockItems, mockStockMovements, StockMovement } from "@/lib/mockData";
+import { StockMovement } from "@/types";
+import { useDirectusItems } from "@/hooks/useDirectusItems";
+import { useDirectusMovements } from "@/hooks/useDirectusMovements";
 
 export default function StockReceiving() {
-  const [movements, setMovements] = useState<StockMovement[]>(
-    mockStockMovements.filter(m => m.type === "received")
-  );
+  const { items } = useDirectusItems();
+  const { movements, createMovement } = useDirectusMovements('received');
 
   const [formData, setFormData] = useState({
     itemId: "",
@@ -26,23 +27,22 @@ export default function StockReceiving() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const selectedItem = mockItems.find(item => item.id === formData.itemId);
+    const selectedItem = items.find(item => item.id === formData.itemId);
     if (!selectedItem) {
       toast.error("Please select an item");
       return;
     }
 
-    const newMovement: StockMovement = {
-      id: Date.now().toString(),
+    const newMovement = {
       itemId: formData.itemId,
       itemName: selectedItem.itemName,
-      type: "received",
+      type: "received" as const,
       quantity: parseInt(formData.quantity),
       date: formData.date,
       reference: formData.reference,
     };
 
-    setMovements([newMovement, ...movements]);
+    createMovement(newMovement);
     
     // Reset form
     setFormData({
@@ -82,7 +82,7 @@ export default function StockReceiving() {
                     <SelectValue placeholder="Select item" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockItems.map((item) => (
+                    {items.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.itemCode} - {item.itemName}
                       </SelectItem>
