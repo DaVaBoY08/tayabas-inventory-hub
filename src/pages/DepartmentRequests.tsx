@@ -8,46 +8,37 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { mockItems } from "@/lib/mockData";
-
-interface DepartmentRequest {
-  id: string;
-  requestDate: string;
-  department: string;
-  requestedBy: string;
-  itemId: string;
-  itemName: string;
-  quantity: number;
-  purpose: string;
-  status: "Pending" | "Approved" | "Rejected" | "Fulfilled";
-  approvedBy?: string;
-  remarks?: string;
-}
+import { useDirectusItems } from "@/hooks/useDirectusItems";
+import { DepartmentRequest } from "@/types";
 
 export default function DepartmentRequests() {
+  const { items } = useDirectusItems();
   const [requests, setRequests] = useState<DepartmentRequest[]>([
     {
       id: "1",
       requestDate: "2024-01-18",
       department: "Human Resources",
       requestedBy: "Juan Dela Cruz",
-      itemId: "1",
-      itemName: "A4 Bond Paper (500 sheets)",
-      quantity: 20,
-      purpose: "Monthly reports printing",
-      status: "Approved",
-      approvedBy: "Admin User",
+      items: [{
+        itemId: "1",
+        itemName: "A4 Bond Paper (500 sheets)",
+        quantity: 20,
+        purpose: "Monthly reports printing",
+      }],
+      status: "approved",
     },
     {
       id: "2",
       requestDate: "2024-01-19",
       department: "Finance",
       requestedBy: "Maria Santos",
-      itemId: "2",
-      itemName: "Ballpoint Pen (Blue)",
-      quantity: 5,
-      purpose: "Office supplies replenishment",
-      status: "Pending",
+      items: [{
+        itemId: "2",
+        itemName: "Ballpoint Pen (Blue)",
+        quantity: 5,
+        purpose: "Office supplies replenishment",
+      }],
+      status: "pending",
     },
   ]);
 
@@ -61,19 +52,21 @@ export default function DepartmentRequests() {
   });
 
   const handleSubmit = () => {
-    const selectedItem = mockItems.find(item => item.id === formData.itemId);
+    const selectedItem = items.find(item => item.id === formData.itemId);
     if (!selectedItem) return;
 
     const newRequest: DepartmentRequest = {
       id: Date.now().toString(),
-      requestDate: new Date().toISOString().split('T')[0],
       department: formData.department,
       requestedBy: formData.requestedBy,
-      itemId: formData.itemId,
-      itemName: selectedItem.itemName,
-      quantity: parseInt(formData.quantity),
-      purpose: formData.purpose,
-      status: "Pending",
+      requestDate: new Date().toISOString().split('T')[0],
+      items: [{
+        itemId: formData.itemId,
+        itemName: selectedItem.itemName,
+        quantity: parseInt(formData.quantity),
+        purpose: formData.purpose,
+      }],
+      status: "pending",
     };
 
     setRequests([newRequest, ...requests]);
@@ -85,7 +78,7 @@ export default function DepartmentRequests() {
   const handleApprove = (id: string) => {
     setRequests(requests.map(req => 
       req.id === id 
-        ? { ...req, status: "Approved" as const, approvedBy: "Admin User" }
+        ? { ...req, status: "approved" as const }
         : req
     ));
     toast.success("Request approved");
@@ -94,7 +87,7 @@ export default function DepartmentRequests() {
   const handleReject = (id: string) => {
     setRequests(requests.map(req => 
       req.id === id 
-        ? { ...req, status: "Rejected" as const, approvedBy: "Admin User" }
+        ? { ...req, status: "rejected" as const }
         : req
     ));
     toast.error("Request rejected");
@@ -112,11 +105,11 @@ export default function DepartmentRequests() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Approved":
+      case "approved":
         return <CheckCircle className="w-4 h-4" />;
-      case "Rejected":
+      case "rejected":
         return <XCircle className="w-4 h-4" />;
-      case "Fulfilled":
+      case "fulfilled":
         return <CheckCircle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
@@ -125,11 +118,11 @@ export default function DepartmentRequests() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Approved":
+      case "approved":
         return "bg-success/10 text-success";
-      case "Rejected":
+      case "rejected":
         return "bg-destructive/10 text-destructive";
-      case "Fulfilled":
+      case "fulfilled":
         return "bg-primary/10 text-primary";
       default:
         return "bg-warning/10 text-warning";
@@ -177,9 +170,9 @@ export default function DepartmentRequests() {
                     <td className="py-3 px-4 text-sm">{request.requestDate}</td>
                     <td className="py-3 px-4 text-sm font-medium">{request.department}</td>
                     <td className="py-3 px-4 text-sm">{request.requestedBy}</td>
-                    <td className="py-3 px-4 text-sm">{request.itemName}</td>
-                    <td className="py-3 px-4 text-sm text-right">{request.quantity}</td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground max-w-xs truncate">{request.purpose}</td>
+                    <td className="py-3 px-4 text-sm">{request.items[0]?.itemName || "N/A"}</td>
+                    <td className="py-3 px-4 text-sm text-right">{request.items[0]?.quantity || 0}</td>
+                    <td className="py-3 px-4 text-sm text-muted-foreground max-w-xs truncate">{request.items[0]?.purpose || ""}</td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
                         {getStatusIcon(request.status)}
@@ -187,7 +180,7 @@ export default function DepartmentRequests() {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      {request.status === "Pending" && (
+                      {request.status === "pending" && (
                         <div className="flex items-center justify-center gap-2">
                           <Button
                             size="sm"
@@ -255,7 +248,7 @@ export default function DepartmentRequests() {
                   <SelectValue placeholder="Select item" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockItems.map((item) => (
+                  {items.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.itemCode} - {item.itemName} (Available: {item.quantity})
                     </SelectItem>

@@ -5,20 +5,56 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from "recharts";
-import { 
-  mockItems, 
-  monthlyStockMovement, 
-  categoryDistribution, 
-  topIssuedItems,
-  custodianAssets 
-} from "@/lib/mockData";
+import { useDirectusItems } from "@/hooks/useDirectusItems";
+
+// Mock chart data for now - can be replaced with real data from Directus
+const monthlyStockMovement = [
+  { month: "Jul", received: 150, issued: 120 },
+  { month: "Aug", received: 180, issued: 145 },
+  { month: "Sep", received: 165, issued: 150 },
+  { month: "Oct", received: 200, issued: 170 },
+  { month: "Nov", received: 220, issued: 190 },
+  { month: "Dec", received: 195, issued: 175 },
+  { month: "Jan", received: 210, issued: 160 },
+];
+
+const categoryDistribution = [
+  { name: "Office Supplies", value: 450, fill: "hsl(var(--chart-1))" },
+  { name: "Equipment", value: 180, fill: "hsl(var(--chart-2))" },
+  { name: "PPE", value: 280, fill: "hsl(var(--chart-3))" },
+  { name: "Cleaning Supplies", value: 150, fill: "hsl(var(--chart-4))" },
+  { name: "Others", value: 90, fill: "hsl(var(--chart-5))" },
+];
+
+const topIssuedItems = [
+  { name: "A4 Bond Paper", count: 450 },
+  { name: "Ballpoint Pen", count: 380 },
+  { name: "Folder", count: 320 },
+  { name: "Stapler Wire", count: 280 },
+  { name: "Printer Ink", count: 250 },
+  { name: "Envelope", count: 220 },
+  { name: "Tape", count: 180 },
+  { name: "Paper Clip", count: 160 },
+  { name: "Rubber Band", count: 140 },
+  { name: "Correction Fluid", count: 120 },
+];
+
+const custodianAssets = [
+  { name: "Human Resources", value: 45, fill: "hsl(var(--chart-1))" },
+  { name: "Finance", value: 32, fill: "hsl(var(--chart-2))" },
+  { name: "IT Department", value: 28, fill: "hsl(var(--chart-3))" },
+  { name: "Engineering", value: 25, fill: "hsl(var(--chart-4))" },
+  { name: "Others", value: 20, fill: "hsl(var(--chart-5))" },
+];
 
 export default function Dashboard() {
-  const totalItems = mockItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalValue = mockItems.reduce((sum, item) => sum + item.totalValue, 0);
-  const lowStockCount = mockItems.filter(item => item.quantity <= item.reorderLevel).length;
+  const { items, isLoading } = useDirectusItems();
   
-  const lowStockItems = mockItems
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalValue = items.reduce((sum, item) => sum + item.totalValue, 0);
+  const lowStockCount = items.filter(item => item.quantity <= item.reorderLevel).length;
+  
+  const lowStockItems = items
     .filter(item => item.quantity <= item.reorderLevel)
     .sort((a, b) => (a.quantity / a.reorderLevel) - (b.quantity / b.reorderLevel));
 

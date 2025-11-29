@@ -1,8 +1,10 @@
 import { Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockCustodians } from "@/lib/mockData";
+import { useDirectusCustodians } from "@/hooks/useDirectusCustodians";
 
 export default function Custodians() {
+  const { custodians, isLoading } = useDirectusCustodians();
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
@@ -18,8 +20,11 @@ export default function Custodians() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {mockCustodians.map((custodian) => (
+          {isLoading ? (
+            <p className="text-center text-muted-foreground">Loading custodians...</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {custodians.map((custodian) => (
               <Card key={custodian.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
@@ -48,6 +53,7 @@ export default function Custodians() {
               </Card>
             ))}
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

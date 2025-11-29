@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { mockItems, mockStockMovements, mockCustodians, StockMovement } from "@/lib/mockData";
+import { StockMovement } from "@/types";
+import { useDirectusItems } from "@/hooks/useDirectusItems";
+import { useDirectusMovements } from "@/hooks/useDirectusMovements";
+import { useDirectusCustodians } from "@/hooks/useDirectusCustodians";
 
 export default function StockIssuance() {
-  const [movements, setMovements] = useState<StockMovement[]>(
-    mockStockMovements.filter(m => m.type === "issued")
-  );
+  const { items } = useDirectusItems();
+  const { movements, createMovement } = useDirectusMovements('issued');
+  const { custodians } = useDirectusCustodians();
 
   const [formData, setFormData] = useState({
     itemId: "",
@@ -27,26 +30,25 @@ export default function StockIssuance() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const selectedItem = mockItems.find(item => item.id === formData.itemId);
-    const selectedCustodian = mockCustodians.find(c => c.id === formData.custodianId);
+    const selectedItem = items.find(item => item.id === formData.itemId);
+    const selectedCustodian = custodians.find(c => c.id === formData.custodianId);
     
     if (!selectedItem || !selectedCustodian) {
       toast.error("Please select item and custodian");
       return;
     }
 
-    const newMovement: StockMovement = {
-      id: Date.now().toString(),
+    const newMovement = {
       itemId: formData.itemId,
       itemName: selectedItem.itemName,
-      type: "issued",
+      type: "issued" as const,
       quantity: parseInt(formData.quantity),
       date: formData.date,
       reference: formData.reference,
       custodian: selectedCustodian.name,
     };
 
-    setMovements([newMovement, ...movements]);
+    createMovement(newMovement);
     
     // Reset form
     setFormData({
@@ -87,7 +89,7 @@ export default function StockIssuance() {
                     <SelectValue placeholder="Select item" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockItems.map((item) => (
+                    {items.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.itemCode} - {item.itemName} (Available: {item.quantity})
                       </SelectItem>
@@ -103,7 +105,7 @@ export default function StockIssuance() {
                     <SelectValue placeholder="Select custodian" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockCustodians.map((custodian) => (
+                    {custodians.map((custodian) => (
                       <SelectItem key={custodian.id} value={custodian.id}>
                         {custodian.name} - {custodian.department}
                       </SelectItem>
