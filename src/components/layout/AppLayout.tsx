@@ -16,9 +16,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/useAuth";
-import { useUserRole } from "@/hooks/useUserRole";
-import { canAccessRoute } from "@/config/rolePermissions";
+import { useDirectusAuth } from "@/hooks/useDirectusAuth";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -36,12 +34,10 @@ const navigation = [
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, signOut } = useAuth();
-  const { role } = useUserRole();
+  const { user, signOut } = useDirectusAuth();
 
-  const visibleNavigation = navigation.filter((item) => 
-    canAccessRoute(item.href, role)
-  );
+  // For now, show all navigation - role system can be added later to Directus
+  const visibleNavigation = navigation;
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,16 +101,9 @@ export function AppLayout() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {user?.user_metadata?.full_name || "User"}
-                  </p>
-                  {role && (
-                    <Badge variant="secondary" className="text-xs capitalize">
-                      {role}
-                    </Badge>
-                  )}
-                </div>
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {user?.full_name || "User"}
+                </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
                   {user?.email}
                 </p>

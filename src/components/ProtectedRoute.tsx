@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useDirectusAuth } from "@/hooks/useDirectusAuth";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading } = useDirectusAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

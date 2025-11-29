@@ -7,11 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { mockItems, InventoryItem } from "@/lib/mockData";
+import { InventoryItem } from "@/lib/mockData";
+import { useDirectusItems } from "@/hooks/useDirectusItems";
 
 export default function Items() {
-  const [items, setItems] = useState<InventoryItem[]>(mockItems);
+  const { items, isLoading, createItem, updateItem, deleteItem } = useDirectusItems();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -43,8 +43,7 @@ export default function Items() {
       quantity <= reorderLevel ? "Low Stock" : 
       "In Stock";
 
-    const newItem: InventoryItem = {
-      id: Date.now().toString(),
+    const newItem = {
       itemCode: formData.itemCode,
       itemName: formData.itemName,
       category: formData.category,
@@ -58,10 +57,9 @@ export default function Items() {
       lastUpdated: new Date().toISOString().split('T')[0],
     };
 
-    setItems([...items, newItem]);
+    createItem(newItem);
     setIsAddDialogOpen(false);
     resetForm();
-    toast.success("Item added successfully");
   };
 
   const handleEdit = () => {
@@ -74,37 +72,30 @@ export default function Items() {
       quantity <= reorderLevel ? "Low Stock" : 
       "In Stock";
 
-    const updatedItems = items.map(item =>
-      item.id === selectedItem.id
-        ? {
-            ...item,
-            itemCode: formData.itemCode,
-            itemName: formData.itemName,
-            category: formData.category,
-            unit: formData.unit,
-            quantity: quantity,
-            unitCost: parseFloat(formData.unitCost),
-            totalValue: quantity * parseFloat(formData.unitCost),
-            reorderLevel: reorderLevel,
-            location: formData.location,
-            status: status,
-            lastUpdated: new Date().toISOString().split('T')[0],
-          }
-        : item
-    );
+    const updatedData = {
+      itemCode: formData.itemCode,
+      itemName: formData.itemName,
+      category: formData.category,
+      unit: formData.unit,
+      quantity: quantity,
+      unitCost: parseFloat(formData.unitCost),
+      totalValue: quantity * parseFloat(formData.unitCost),
+      reorderLevel: reorderLevel,
+      location: formData.location,
+      status: status,
+      lastUpdated: new Date().toISOString().split('T')[0],
+    };
 
-    setItems(updatedItems);
+    updateItem({ id: selectedItem.id, data: updatedData });
     setIsEditDialogOpen(false);
     resetForm();
-    toast.success("Item updated successfully");
   };
 
   const handleDelete = () => {
     if (!selectedItem) return;
-    setItems(items.filter(item => item.id !== selectedItem.id));
+    deleteItem(selectedItem.id);
     setIsDeleteDialogOpen(false);
     setSelectedItem(null);
-    toast.success("Item deleted successfully");
   };
 
   const openEditDialog = (item: InventoryItem) => {

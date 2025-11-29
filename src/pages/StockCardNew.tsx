@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useItems } from "@/hooks/useItems";
-import { useStockMovements } from "@/hooks/useStockMovements";
+import { useDirectusItems } from "@/hooks/useDirectusItems";
+import { useDirectusMovements } from "@/hooks/useDirectusMovements";
 import { format } from "date-fns";
 
 interface StockCardEntry {
@@ -24,15 +24,15 @@ export default function StockCardNew() {
   const [selectedItem, setSelectedItem] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { items, isLoading: itemsLoading } = useItems();
-  const { movements, isLoading: movementsLoading } = useStockMovements(selectedItem || undefined);
+  const { items, isLoading: itemsLoading } = useDirectusItems();
+  const { movements, isLoading: movementsLoading } = useDirectusMovements();
 
   // Filter items based on search
   const filteredItems = useMemo(() => {
     if (!items) return [];
     return items.filter(item =>
-      item.item_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.item_code?.toLowerCase().includes(searchQuery.toLowerCase())
+      item.itemName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.itemCode?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [items, searchQuery]);
 
@@ -45,15 +45,15 @@ export default function StockCardNew() {
   const stockCardEntries = useMemo(() => {
     if (!selectedItem || !selectedItemData || !movements) return [];
 
-    const sortedMovements = [...movements].sort(
-      (a, b) => new Date(a.movement_date).getTime() - new Date(b.movement_date).getTime()
-    );
+    const sortedMovements = [...movements]
+      .filter(m => m.itemId === selectedItem)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     let runningBalance = 0;
     const entries: StockCardEntry[] = [];
 
     sortedMovements.forEach(movement => {
-      if (movement.movement_type === 'received') {
+      if (movement.type === 'received') {
         runningBalance += movement.quantity;
       } else {
         runningBalance -= movement.quantity;
@@ -61,16 +61,16 @@ export default function StockCardNew() {
 
       entries.push({
         id: movement.id,
-        date: format(new Date(movement.movement_date), 'yyyy-MM-dd'),
+        date: format(new Date(movement.date), 'yyyy-MM-dd'),
         reference: movement.reference,
-        type: movement.movement_type,
+        type: movement.type,
         quantity: movement.quantity,
         balance: runningBalance,
-        unitCost: selectedItemData.unit_cost,
-        totalValue: runningBalance * selectedItemData.unit_cost,
+        unitCost: selectedItemData.unitCost,
+        totalValue: runningBalance * selectedItemData.unitCost,
         remarks: movement.custodian 
-          ? `Custodian: ${movement.custodian}${movement.department ? ` (${movement.department})` : ''}` 
-          : movement.purpose || '',
+          ? `Custodian: ${movement.custodian}`
+          : '',
       });
     });
 
@@ -94,7 +94,7 @@ export default function StockCardNew() {
     ]);
 
     const csvContent = [
-      `Stock Card for: ${selectedItemData.item_name} (${selectedItemData.item_code})`,
+      `Stock Card for: ${selectedItemData.itemName} (${selectedItemData.itemCode})`,
       '',
       headers.join(','),
       ...rows.map(row => row.join(','))
@@ -105,7 +105,7 @@ export default function StockCardNew() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `stock-card-${selectedItemData.item_code}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `stock-card-${selectedItemData.itemCode}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -164,7 +164,7 @@ export default function StockCardNew() {
                   {filteredItems.length > 0 ? (
                     filteredItems.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
-                        {item.item_code} - {item.item_name}
+                        {item.itemCode} - {item.itemName}
                       </SelectItem>
                     ))
                   ) : (
@@ -187,12 +187,12 @@ export default function StockCardNew() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Unit Cost</p>
-                <p className="text-2xl font-bold">₱{selectedItemData.unit_cost.toFixed(2)}</p>
+                <p className="text-2xl font-bold">₱{selectedItemData.unitCost.toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Value</p>
                 <p className="text-2xl font-bold">
-                  ₱{(selectedItemData.quantity * selectedItemData.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₱{(selectedItemData.quantity * selectedItemData.unitCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
