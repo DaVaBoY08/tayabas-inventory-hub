@@ -50,6 +50,117 @@ export type Database = {
         }
         Relationships: []
       }
+      department_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          department: string
+          id: string
+          remarks: string | null
+          request_date: string
+          request_number: string
+          requested_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          department: string
+          id?: string
+          remarks?: string | null
+          request_date?: string
+          request_number: string
+          requested_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          id?: string
+          remarks?: string | null
+          request_date?: string
+          request_number?: string
+          requested_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inspections: {
+        Row: {
+          condition_after: string | null
+          condition_before: string | null
+          created_at: string
+          created_by: string | null
+          findings: string | null
+          id: string
+          inspection_date: string
+          inspection_number: string
+          inspector_name: string
+          item_id: string
+          par_id: string | null
+          recommendations: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition_after?: string | null
+          condition_before?: string | null
+          created_at?: string
+          created_by?: string | null
+          findings?: string | null
+          id?: string
+          inspection_date?: string
+          inspection_number: string
+          inspector_name: string
+          item_id: string
+          par_id?: string | null
+          recommendations?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition_after?: string | null
+          condition_before?: string | null
+          created_at?: string
+          created_by?: string | null
+          findings?: string | null
+          id?: string
+          inspection_date?: string
+          inspection_number?: string
+          inspector_name?: string
+          item_id?: string
+          par_id?: string | null
+          recommendations?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspections_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_par_id_fkey"
+            columns: ["par_id"]
+            isOneToOne: false
+            referencedRelation: "property_acknowledgement_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           category: string | null
@@ -121,6 +232,111 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      property_acknowledgement_receipts: {
+        Row: {
+          condition: string | null
+          created_at: string
+          created_by: string | null
+          custodian_id: string
+          date_acquired: string
+          id: string
+          item_id: string
+          location: string | null
+          par_number: string
+          property_number: string | null
+          quantity: number
+          remarks: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string
+          created_by?: string | null
+          custodian_id: string
+          date_acquired: string
+          id?: string
+          item_id: string
+          location?: string | null
+          par_number: string
+          property_number?: string | null
+          quantity: number
+          remarks?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string
+          created_by?: string | null
+          custodian_id?: string
+          date_acquired?: string
+          id?: string
+          item_id?: string
+          location?: string | null
+          par_number?: string
+          property_number?: string | null
+          quantity?: number
+          remarks?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_acknowledgement_receipts_custodian_id_fkey"
+            columns: ["custodian_id"]
+            isOneToOne: false
+            referencedRelation: "custodians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_acknowledgement_receipts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      request_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          purpose: string | null
+          quantity: number
+          request_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          purpose?: string | null
+          quantity: number
+          request_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          purpose?: string | null
+          quantity?: number
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "department_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_movements: {
         Row: {
