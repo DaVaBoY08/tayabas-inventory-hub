@@ -10,10 +10,14 @@ import Dashboard from "./pages/Dashboard";
 import Items from "./pages/Items";
 import StockReceiving from "./pages/StockReceiving";
 import StockIssuance from "./pages/StockIssuance";
+import BulkStockReceiving from "./pages/BulkStockReceiving";
+import BulkStockIssuance from "./pages/BulkStockIssuance";
 import Custodians from "./pages/Custodians";
 import StockCardNew from "./pages/StockCardNew";
 import PhysicalCountNew from "./pages/PhysicalCountNew";
-import DepartmentRequests from "./pages/DepartmentRequests";
+import DepartmentRequestsNew from "./pages/DepartmentRequestsNew";
+import PARModule from "./pages/PARModule";
+import InspectionModule from "./pages/InspectionModule";
 import UserRoles from "./pages/UserRoles";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
@@ -34,10 +38,14 @@ const App = () => (
             <Route path="/items" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><Items /></RoleGuard>} />
             <Route path="/receiving" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><StockReceiving /></RoleGuard>} />
             <Route path="/issuance" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><StockIssuance /></RoleGuard>} />
+            <Route path="/bulk-receiving" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><BulkStockReceiving /></RoleGuard>} />
+            <Route path="/bulk-issuance" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><BulkStockIssuance /></RoleGuard>} />
             <Route path="/custodians" element={<Custodians />} />
             <Route path="/stock-card" element={<StockCardNew />} />
             <Route path="/physical-count" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><PhysicalCountNew /></RoleGuard>} />
-            <Route path="/requests" element={<RoleGuard allowedRoles={["admin", "manager"]}><DepartmentRequests /></RoleGuard>} />
+            <Route path="/requests" element={<DepartmentRequestsNew />} />
+            <Route path="/par" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><PARModule /></RoleGuard>} />
+            <Route path="/inspections" element={<RoleGuard allowedRoles={["admin", "manager", "staff"]}><InspectionModule /></RoleGuard>} />
             <Route path="/users" element={<RoleGuard allowedRoles={["admin"]}><UserRoles /></RoleGuard>} />
             <Route path="/settings" element={<Settings />} />
           </Route>
