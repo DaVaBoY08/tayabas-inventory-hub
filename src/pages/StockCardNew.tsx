@@ -46,14 +46,14 @@ export default function StockCardNew() {
     if (!selectedItem || !selectedItemData || !movements) return [];
 
     const sortedMovements = [...movements]
-      .filter(m => m.itemId === selectedItem)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .filter(m => m.item_id === selectedItem)
+      .sort((a, b) => new Date(a.movement_date).getTime() - new Date(b.movement_date).getTime());
 
     let runningBalance = 0;
     const entries: StockCardEntry[] = [];
 
     sortedMovements.forEach(movement => {
-      if (movement.type === 'received') {
+      if (movement.movement_type === 'received') {
         runningBalance += movement.quantity;
       } else {
         runningBalance -= movement.quantity;
@@ -61,9 +61,9 @@ export default function StockCardNew() {
 
       entries.push({
         id: movement.id,
-        date: format(new Date(movement.date), 'yyyy-MM-dd'),
+        date: format(new Date(movement.movement_date), 'yyyy-MM-dd'),
         reference: movement.reference,
-        type: movement.type,
+        type: movement.movement_type,
         quantity: movement.quantity,
         balance: runningBalance,
         unitCost: selectedItemData.unitCost,
