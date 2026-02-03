@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { PackageMinus, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { PackageMinus, FileText, Filter, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -7,68 +7,246 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { StockMovement } from "@/types";
-import { useDirectusItems } from "@/hooks/useDirectusItems";
-import { useDirectusMovements } from "@/hooks/useDirectusMovements";
-import { useDirectusCustodians } from "@/hooks/useDirectusCustodians";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useItems } from "@/hooks/useItems";
+import { useStockMovements } from "@/hooks/useStockMovements";
+import { useCustodians } from "@/hooks/useCustodians";
+import DateRangeFilter from "@/components/filters/DateRangeFilter";
+import ItemFilter from "@/components/filters/ItemFilter";
+
+interface CartItem {
+  itemId: string;
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  availableQty: number;
+  purpose: string;
+}
 
 export default function StockIssuance() {
-  const { items } = useDirectusItems();
-  const { movements, createMovement } = useDirectusMovements('issued');
-  const { custodians } = useDirectusCustodians();
+  const { items, updateItem } = useItems();
+  const { movements, createMovement } = useStockMovements();
+  const { custodians } = useCustodians();
 
+  // Filter only issued movements
+  const issuedMovements = movements.filter(m => m.movement_type === "issued");
+
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [formData, setFormData] = useState({
-    itemId: "",
-    quantity: "",
     custodianId: "",
     reference: "",
-    date: new Date().toISOString().split('T')[0],
-    purpose: "",
+    date: new Date().toISOString().split("T")[0],
     notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const selectedItem = items.find(item => item.id === formData.itemId);
-    const selectedCustodian = custodians.find(c => c.id === formData.custodianId);
-    
-    if (!selectedItem || !selectedCustodian) {
-      toast.error("Please select item and custodian");
+  // Item selection for adding to cart
+  const [selectedItemId, setSelectedItemId] = useState("");
+  const [selectedQuantity, setSelectedQuantity] = useState("");
+  const [selectedPurpose, setSelectedPurpose] = useState("");
+
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  // Auto-generate RIS number
+  useEffect(() => {
+    if (movements) {
+      const currentYear = new Date().getFullYear();
+      const risMovements = movements.filter(m => m.reference.startsWith("RIS-"));
+      const nextId = risMovements.length + 1;
+      const newRisNo = `RIS-${currentYear}-${String(nextId).padStart(4, "0")}`;
+      setFormData(prev => ({ ...prev, reference: newRisNo }));
+    }
+  }, [movements]);
+
+  // Filter issuances
+  const filteredIssuances = issuedMovements.filter((movement) => {
+    const item = items.find(i => i.id === movement.item_id);
+    const itemName = item?.item_name?.toLowerCase() || "";
+    const reference = movement.reference?.toLowerCase() || "";
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch = itemName.includes(query) || reference.includes(query);
+
+    let matchesDate = true;
+    if (dateFrom || dateTo) {
+      const movementDate = movement.movement_date?.split("T")[0] || "";
+      if (dateFrom && movementDate < dateFrom) matchesDate = false;
+      if (dateTo && movementDate > dateTo) matchesDate = false;
+    }
+
+    return matchesSearch && matchesDate;
+  });
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  const handleAddToCart = () => {
+    if (!selectedItemId) {
+      toast.error("Please select an item.");
       return;
     }
 
-    const newMovement = {
-      itemId: formData.itemId,
-      itemName: selectedItem.itemName,
-      type: "issued" as const,
-      quantity: parseInt(formData.quantity),
-      date: formData.date,
-      reference: formData.reference,
-      custodian: selectedCustodian.name,
-    };
+    const item = items.find(i => i.id === selectedItemId);
+    if (!item) {
+      toast.error("Item not found.");
+      return;
+    }
 
-    createMovement(newMovement);
-    
-    // Reset form
-    setFormData({
-      itemId: "",
-      quantity: "",
-      custodianId: "",
-      reference: "",
-      date: new Date().toISOString().split('T')[0],
-      purpose: "",
-      notes: "",
-    });
+    const quantity = parseInt(selectedQuantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      toast.error("Please enter a valid quantity.");
+      return;
+    }
 
-    toast.success("Stock issued successfully");
+    // Check if item already in cart
+    const existingCartItem = cart.find(c => c.itemId === selectedItemId);
+    const totalRequested = (existingCartItem?.quantity || 0) + quantity;
+
+    if (totalRequested > item.quantity) {
+      toast.error(`Not enough stock. Available: ${item.quantity - (existingCartItem?.quantity || 0)}`);
+      return;
+    }
+
+    if (!selectedPurpose.trim()) {
+      toast.error("Please enter a purpose.");
+      return;
+    }
+
+    if (existingCartItem) {
+      // Update existing cart item
+      setCart(cart.map(c =>
+        c.itemId === selectedItemId
+          ? { ...c, quantity: c.quantity + quantity, purpose: selectedPurpose }
+          : c
+      ));
+    } else {
+      // Add new cart item
+      setCart([...cart, {
+        itemId: item.id,
+        itemCode: item.item_code,
+        itemName: item.item_name,
+        quantity,
+        availableQty: item.quantity,
+        purpose: selectedPurpose,
+      }]);
+    }
+
+    // Reset selection
+    setSelectedItemId("");
+    setSelectedQuantity("");
+    setSelectedPurpose("");
+    toast.success("Item added to cart");
   };
+
+  const handleRemoveFromCart = (itemId: string) => {
+    setCart(cart.filter(c => c.itemId !== itemId));
+    toast.success("Item removed from cart");
+  };
+
+  const handleUpdateCartQuantity = (itemId: string, newQuantity: number) => {
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (newQuantity > item.quantity) {
+      toast.error(`Not enough stock. Available: ${item.quantity}`);
+      return;
+    }
+
+    if (newQuantity <= 0) {
+      handleRemoveFromCart(itemId);
+      return;
+    }
+
+    setCart(cart.map(c =>
+      c.itemId === itemId ? { ...c, quantity: newQuantity } : c
+    ));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (cart.length === 0) {
+      toast.error("Please add at least one item to the cart.");
+      return;
+    }
+
+    if (!formData.custodianId) {
+      toast.error("Please select a custodian.");
+      return;
+    }
+
+    const selectedCustodian = custodians.find(c => c.id === formData.custodianId);
+    if (!selectedCustodian) {
+      toast.error("Selected custodian not found.");
+      return;
+    }
+
+    // Check for duplicate reference
+    if (movements.some((movement) => movement.reference === formData.reference)) {
+      toast.error("RIS No. already exists.");
+      return;
+    }
+
+    try {
+      // Create movement for each cart item
+      for (const cartItem of cart) {
+        const item = items.find(i => i.id === cartItem.itemId);
+        if (!item) continue;
+
+        // Validate stock availability
+        if (item.quantity < cartItem.quantity) {
+          toast.error(`Not enough stock for ${cartItem.itemName}`);
+          return;
+        }
+
+        await createMovement.mutateAsync({
+          item_id: cartItem.itemId,
+          movement_type: "issued",
+          quantity: cartItem.quantity,
+          movement_date: formData.date,
+          reference: formData.reference,
+          custodian: selectedCustodian.name,
+          department: selectedCustodian.department,
+          purpose: cartItem.purpose,
+        });
+
+        // Update item quantity
+        const updatedQuantity = item.quantity - cartItem.quantity;
+        await updateItem.mutateAsync({
+          id: item.id,
+          quantity: updatedQuantity,
+        });
+      }
+
+      // Reset form and cart
+      setCart([]);
+      setFormData({
+        custodianId: "",
+        reference: "",
+        date: new Date().toISOString().split("T")[0],
+        notes: "",
+      });
+
+      toast.success(`${cart.length} item(s) issued successfully under ${formData.reference}`);
+    } catch (error) {
+      toast.error("Failed to issue items. Please try again.");
+    }
+  };
+
+  const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Stock Issuance / RIS</h1>
-        <p className="text-muted-foreground mt-1">Issue inventory items to custodians</p>
+        <p className="text-muted-foreground mt-1">Issue multiple inventory items to custodians</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -78,24 +256,38 @@ export default function StockIssuance() {
             <CardTitle className="flex items-center gap-2">
               <PackageMinus className="w-5 h-5" />
               Issue Items (RIS)
+              {cart.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  <ShoppingCart className="w-3 h-3 mr-1" />
+                  {cart.length} item(s)
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="item">Item</Label>
-                <Select value={formData.itemId} onValueChange={(value) => setFormData({ ...formData, itemId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select item" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {items.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.itemCode} - {item.itemName} (Available: {item.quantity})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* RIS Header */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reference">RIS No.</Label>
+                  <Input
+                    id="reference"
+                    value={formData.reference}
+                    onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                    placeholder="RIS-2024-001"
+                    disabled
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date Issued</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    disabled
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -114,50 +306,97 @@ export default function StockIssuance() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <Separator />
+
+              {/* Add Item to Cart Section */}
+              <div className="p-4 bg-muted/30 rounded-lg space-y-4">
+                <Label className="text-sm font-medium">Add Item to Cart</Label>
+
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    placeholder="0"
-                    required
-                  />
+                  <Label htmlFor="item">Item</Label>
+                  <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select item" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {items.filter(item => item.quantity > 0).map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.item_code} - {item.item_name} (Available: {item.quantity})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date Issued</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      value={selectedQuantity}
+                      onChange={(e) => setSelectedQuantity(e.target.value)}
+                      placeholder="0"
+                      min="1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="purpose">Purpose</Label>
+                    <Input
+                      id="purpose"
+                      value={selectedPurpose}
+                      onChange={(e) => setSelectedPurpose(e.target.value)}
+                      placeholder="Purpose"
+                    />
+                  </div>
                 </div>
+
+                <Button type="button" variant="outline" onClick={handleAddToCart} className="w-full gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add to Cart
+                </Button>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="reference">RIS No.</Label>
-                <Input
-                  id="reference"
-                  value={formData.reference}
-                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                  placeholder="RIS-2024-001"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="purpose">Purpose</Label>
-                <Input
-                  id="purpose"
-                  value={formData.purpose}
-                  onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                  placeholder="Purpose of issuance"
-                />
-              </div>
+              {/* Cart Items */}
+              {cart.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Cart Items ({totalCartItems} total qty)</Label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {cart.map((cartItem) => (
+                      <div
+                        key={cartItem.itemId}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border bg-background"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{cartItem.itemName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {cartItem.itemCode} • Purpose: {cartItem.purpose}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={cartItem.quantity}
+                            onChange={(e) => handleUpdateCartQuantity(cartItem.itemId, parseInt(e.target.value) || 0)}
+                            className="w-20 h-8 text-center"
+                            min="1"
+                            max={cartItem.availableQty}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveFromCart(cartItem.itemId)}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes (Optional)</Label>
@@ -166,13 +405,13 @@ export default function StockIssuance() {
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes or remarks"
-                  rows={3}
+                  rows={2}
                 />
               </div>
 
-              <Button type="submit" className="w-full gap-2">
+              <Button type="submit" className="w-full gap-2" disabled={cart.length === 0}>
                 <PackageMinus className="w-4 h-4" />
-                Issue Items
+                Issue {cart.length} Item(s)
               </Button>
             </form>
           </CardContent>
@@ -181,45 +420,87 @@ export default function StockIssuance() {
         {/* Recent Issuances */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Recent Issuances
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Recent Issuances
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                {showFilters ? "Hide" : "Filter"}
+              </Button>
+            </div>
+
+            {showFilters && (
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-4">
+                <ItemFilter
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  showCategoryFilter={false}
+                  onClear={() => setSearchQuery("")}
+                />
+                <DateRangeFilter
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  onDateFromChange={setDateFrom}
+                  onDateToChange={setDateTo}
+                  onClear={() => {
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
+                />
+                <div className="flex justify-end">
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {movements.length === 0 ? (
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              {filteredIssuances.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No issuances recorded yet
+                  {searchQuery || dateFrom || dateTo ? "No matching issuances found" : "No issuances recorded yet"}
                 </div>
               ) : (
-                movements.slice(0, 10).map((movement) => (
-                  <div
-                    key={movement.id}
-                    className="flex items-start gap-3 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <PackageMinus className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{movement.itemName}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            To: {movement.custodian}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Ref: {movement.reference}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold text-primary flex-shrink-0">
-                          -{movement.quantity}
-                        </span>
+                filteredIssuances.slice(0, 20).map((movement) => {
+                  const item = items.find(i => i.id === movement.item_id);
+                  return (
+                    <div
+                      key={movement.id}
+                      className="flex items-start gap-3 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <PackageMinus className="w-5 h-5 text-primary" />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">{movement.date}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{item?.item_name || "Unknown Item"}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              To: {movement.custodian || "N/A"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Ref: {movement.reference}
+                            </p>
+                          </div>
+                          <span className="text-sm font-semibold text-primary flex-shrink-0">
+                            -{movement.quantity}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(movement.movement_date).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </CardContent>
